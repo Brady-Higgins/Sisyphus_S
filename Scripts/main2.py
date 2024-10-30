@@ -31,6 +31,7 @@ class SisyphusApp(QWidget):
         # Body label based on first login
         if self.first_login:
             body_text = "Welcome, please input your permanent password below and click submit when you're finished"
+            
         else:
             body_text = "Welcome back, please enter your password"
 
@@ -48,20 +49,29 @@ class SisyphusApp(QWidget):
         # Submit button
         submit_button = QPushButton("Submit", self)
         submit_button.setFixedSize(150, 50)
-        submit_button.clicked.connect(self.check_password)
+        submit_button.clicked.connect(self.submit_password)
         layout.addWidget(submit_button)
 
         # Set the layout for the main widget
         self.setLayout(layout)
 
-    def check_password(self):
-        user_text = self.text_entry.text()
+    def submit_password(self):
+        password_attempt = self.text_entry.text()
         # Replace this with actual verification if diary is set up
-        if user_text == "test":  # Placeholder check
-            QMessageBox.information(self, "Access Granted", "Welcome to your Diary!")
+        if self.first_login:
+            self.diary.createPasswordFile()
+            self.diary.createStorageFile(password_attempt)
+            self.homepage()
         else:
-            QMessageBox.warning(self, "Access Denied", "Incorrect password.")
+            self.createEncryptionKey(password_attempt)
+            if self.validateIdentity(password_attempt):
+                self.homepage()
+            else:
+                QMessageBox(self,"Message","Incorrect Password Attempt")
+                exit()
 
+    def homepage(self):
+        pass
 def main():
     # Initialize the diary and first_login values
     diary, first_login = init()

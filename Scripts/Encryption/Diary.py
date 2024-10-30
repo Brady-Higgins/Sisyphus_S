@@ -26,19 +26,6 @@ class Diary:
             self.first_login = False
             return False
 
-
-    # def check_password_file_exists(self):
-    #     self.file_list = os.listdir(self.current_directory)
-    #     if "Password.txt" in self.file_list:
-    #         self.new_password_file = False
-    #     else:
-    #         self.createPasswordFile()
-    #     if "Sections.txt" in self.file_list:
-    #         pass
-    #     else:
-    #         with open(self.sections_directory, 'w', encoding='utf-8') as f :
-    #             f.writelines("")    
-
     def createPasswordFile(self):
         #Creates the text to fill in a password document so the password can pull pieces for the encryption code
         res = "".join(random.choices(string.ascii_uppercase + string.digits, k=3000))
@@ -61,6 +48,72 @@ class Diary:
                     temp_list = []
                 temp_list.append(letter)
         # expects password
-        print("Password File Created")
-        self.password_attempt = input("Input your permanent password: ")
-        self.createStorageFile()
+
+    def createStorageFile(self,password_attempt): 
+        self.password_attempt = password_attempt     
+        with open(self.storage_directory, 'w', encoding='utf-8') as f:
+            self.createEncryptionKey()
+            message = bytes("[0] V4l1dP4ssw0rd 4uth0r1zedUs4g3","utf-8")
+            f.writelines(str(self.fernet_object.encrypt(message)))
+        f.close()
+
+    def createEncryptionKey(self,password_attempt):
+        numeric_values = [ord(char) for char in password_attempt]
+        i =0
+        while len(numeric_values) < 43:
+            additional_constant = int(numeric_values[i]/2)
+            i+=1
+            for num in numeric_values:
+                if len(numeric_values) <43:
+                    numeric_values.append(num+additional_constant)
+        password_list = []
+        encryption_digits = []
+        with open(self.password_directory, 'r', encoding='utf-8') as f :
+            for line in f:
+                password_line = line
+            f.close()
+        for char in password_line:
+            password_list.append(char)
+        for val in numeric_values:
+            encryption_digits.append(password_list[val])
+        encryption_digits.append("=")
+        encryption_key = "".join(encryption_digits)
+        encryption_key_bytes = bytes(encryption_key,"utf-8")
+        self.encryption_key = encryption_key_bytes
+        self.fernet_object = Fernet(self.encryption_key)
+
+    def validateIdentity(self):
+        with open(self.storage_directory, 'r', encoding='utf-8') as f:
+            validation_line = f.readline()
+            val_list = []
+            for letter in validation_line:
+                val_list.append(letter)
+            new_val = val_list[2 :-1]
+            character = "".join(new_val)
+            byte_validation_line = bytes(character, 'utf-8')
+            password_correct = False
+
+            try :
+                validation_line_decrypted = self.fernet_object.decrypt(byte_validation_line)
+                password_correct = True
+            except :
+                self.password_attempts += 1
+                if self.password_attempts == 3 :
+                    print("Too many Incorrect Attempts")
+                    sys.exit()
+                else :
+                    print("Incorrect Password, Please Retry")
+                    self.passwordFileCheck()
+
+            if password_correct :
+                string_validation_line_d = bytes.decode(validation_line_decrypted)
+                if string_validation_line_d == "[0] V4l1dP4ssw0rd 4uth0r1zedUs4g3" :
+                    self.Journal()
+                else :
+                    self.password_attempts += 1
+                    if self.password_attempts == 3 :
+                        print("Too many Incorrect Attempts")
+                        sys.exit()
+                    else :
+                        print("Incorrect Password, Please Retry")
+                        self.passwordFileCheck()
